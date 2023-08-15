@@ -1,0 +1,37 @@
+[
+    {
+        "name": "ICMP",
+        "url": "www.baidu.com",
+        "proto": "ip4:icmp",
+        "payload": "CAD3/QABAAE=",
+        "tag": 27,
+        "ok": 1
+    }, {
+        "name": "TFTP",
+        "url": "124.146.33.1:7000",
+        "proto": "udp",
+        "payload": "AAExLnR4dABuZXRhc2NpaQ==",
+        "tag": 1,
+        "ok": 5
+    }, {
+        "name": "NTP",
+        "url": "ifogo.com:123",
+        "proto": "udp",
+        "payload": "GwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "tag": 0,
+        "ok": 28
+    }, {
+        "name": "SNMP",
+        "url": "mllnb9370d39.fixip.t-online.hu:162",
+        "proto": "udp",
+        "payload": "MDcCAQEEBnB1YmxpY6AqAgRgMoZIAgEAAgEAMBwwDAYIKwYBAgEBBAAFADAMBggrBgECAQEHAAUA",
+        "tag": 1,
+        "ok": 56
+    },{
+        "name": "SSH",
+        "url": "192.168.73.128:22",
+        "proto": "tcp",
+        "tag": 1,
+        "ok": 83
+    }
+]
