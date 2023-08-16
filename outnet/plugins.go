@@ -5,8 +5,6 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
-	"strconv"
-	"sync"
 	"time"
 
 	"github.com/miekg/dns"
@@ -72,36 +70,18 @@ func checkHttp(host string) {
 	}
 }
 
-// todo:==========存在问题
 // 探测tcp的端口出网情况
-func checkTcpall(ports []int) {
-	// 存活端口数量
-	allowed_ports_number := 0
-	wgtcp := &sync.WaitGroup{}
-	mtcp := &sync.Mutex{} // 互斥锁
-	// 获取端口
-	for _, port := range ports {
-		if allowed_ports_number > 3 {
-			writeFile("[\033[0;38;5;214m!\033[0m] 发现有3个以上的端口可以访问Internet，中止探测", savelog)
-			return
-		}
-		wgtcp.Add(1)
-		go func(p string) {
-			defer wgtcp.Done()
-			// 如果tcp出网那么allowed_ports_number数量增加
-			conn, err := net.DialTimeout("tcp", vps+":"+p, 5*time.Second)
-			// 判断端口是否打开
-			if err == nil {
-				// 关闭连接，减少资源占用
-				defer conn.Close()
-				mtcp.Lock() // 修改x前加锁
-				writeFile("[\033[1;32m✓\033[0m] tcp "+p+" 协议允许出网", savelog)
-				allowed_ports_number += 1
-				mtcp.Unlock() // 改完解锁
-			}
-		}(strconv.Itoa(port))
+func checkTcpall(port string) bool {
+	// 如果tcp出网那么allowed_ports_number数量增加
+	conn, err := net.DialTimeout("tcp", vps+":"+port, 3*time.Second)
+	// 判断端口是否打开
+	if err == nil {
+		// 关闭连接，减少资源占用
+		writeFile("[\033[1;32m✓\033[0m] tcp "+port+" 协议允许出网", savelog)
+		conn.Close()
+		return true
 	}
-	wgtcp.Wait()
+	return false
 }
 
 // 探测其他协议

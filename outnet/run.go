@@ -2,6 +2,7 @@ package outnet
 
 import (
 	"fmt"
+	"strconv"
 )
 
 func Run() {
@@ -14,28 +15,93 @@ func Run() {
 	writeFile("[\033[0;38;5;214m!\033[0m] 探测开始", savelog)
 	switch mode {
 	case "default":
-		// 探测dns协议出网
-		// 必须有域名
-		checkDNS(remotedns, urldomain)
-		// 探测http协议出网
-		checkHttp(vps)
+		// 设置10000个协程通道
+		pool := PoolNew(10000)
+		pool.Add(2)
+		go func() {
+			defer pool.Done()
+			// 探测dns协议出网
+			// 必须有域名
+			checkDNS(remotedns, urldomain)
+		}()
+		go func() {
+			defer pool.Done()
+			// 探测http协议出网
+			checkHttp(vps)
+		}()
+
 		// 探测icmp协议出网
 		for _, pd := range ProtocolData {
-			checkProtocol(pd)
+			pool.Add(1)
+			go func(p ProtocolType) {
+				defer pool.Done()
+				checkProtocol(p)
+			}(pd)
+
 		}
+		// 存活端口数量
+		allowed_ports_number := 0
 		// 探测TCP协议出网
-		checkTcpall(portlists)
+		for _, pnum := range portlists {
+			pool.Add(1)
+			go func(port string) {
+				defer pool.Done()
+				ok := checkTcpall(port)
+				if ok {
+					allowed_ports_number += 1
+				}
+			}(strconv.Itoa(pnum))
+			if allowed_ports_number > 3 {
+				writeFile("[\033[0;38;5;214m!\033[0m] 发现有3个以上的端口可以访问Internet，中止探测", savelog)
+				break
+			}
+		}
+		pool.Wait()
 	case "alltcp":
 		writeFile("[\033[0;38;5;214m!\033[0m] 无输出，表示没有出网的tcp协议端口", savelog)
+		// 设置10000个协程通道
+		pool := PoolNew(10000)
+		// 存活端口数量
+		allowed_ports_number := 0
 		// 检测所有端口的tcp
-		var slice []int
 		for i := 1; i <= 65535; i++ {
-			slice = append(slice, i)
+			pool.Add(1)
+			go func(port string) {
+				defer pool.Done()
+				ok := checkTcpall(port)
+				if ok {
+					allowed_ports_number++
+				}
+			}(strconv.Itoa(i))
+			if allowed_ports_number > 3 {
+				writeFile("[\033[0;38;5;214m!\033[0m] 发现有3个以上的端口可以访问Internet，中止探测", savelog)
+				break
+			}
 		}
-		checkTcpall(slice)
+
+		pool.Wait()
 	case "deftcp":
-		// 探测默认TCP协议出网
-		checkTcpall(portlists)
+		writeFile("[\033[0;38;5;214m!\033[0m] 无输出，表示没有出网的tcp协议端口", savelog)
+		// 设置10000个协程通道
+		pool := PoolNew(10000)
+		// 存活端口数量
+		allowed_ports_number := 0
+		// 检测所有端口的tcp
+		for _, pnum := range portlists {
+			pool.Add(1)
+			go func(port string) {
+				defer pool.Done()
+				ok := checkTcpall(port)
+				if ok {
+					allowed_ports_number += 1
+				}
+			}(strconv.Itoa(pnum))
+			if allowed_ports_number > 3 {
+				writeFile("[\033[0;38;5;214m!\033[0m] 发现有3个以上的端口可以访问Internet，中止探测", savelog)
+				break
+			}
+		}
+		pool.Wait()
 	case "http":
 		// 探测http协议出网
 		checkHttp(vps)
